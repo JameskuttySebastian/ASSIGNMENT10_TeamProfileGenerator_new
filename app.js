@@ -17,8 +17,9 @@ const util = require("util"); // for promisify
 
 const writeFileAsync = util.promisify(fs.writeFile);
 
+//Global variables
 let employeeList = [];
-
+let listItemNo = 0;// for avoiding "do you want to continue?" for first time
 
 async function getEmployeeType() {
 	return await inquirer.prompt([
@@ -38,20 +39,20 @@ async function getEmployeeType() {
 }
 
 async function getEmployeeMember(employeeType) {
-	console.log("async function getEmployeeMember(employeeType): started");
-	if (await employeeType === "Manager") {
+
+	if (employeeType === "Manager") {
 		let manager = new Manager;
-		console.log("manager obj created to pass to Manager class: " + JSON.stringify(manager));
+
 		let managerObj = await getManager(manager);
-		console.log("Received Manager Object : " + JSON.stringify(managerObj));
+
 		return managerObj;
-	} else if (await employeeType === "Engineer") {
+	} else if (employeeType === "Engineer") {
 		let engineer = new Engineer;
-		console.log("Engineer created : " + JSON.stringify(engineer));
+
 		return await getEngineer(engineer);
-	} else if (await employeeType === "Manager") {
+	} else if ( employeeType === "Intern") {
 		let intern = new Intern;
-		console.log("Engineer intern : " + JSON.stringify(intern));
+
 		return await getIntern(intern);
 	}
 }
@@ -70,47 +71,39 @@ async function continueEmployeeList() {
 }
 
 async function getEmployee(){
-	console.log("sync function getEmployee called");
-	const employeeType = await getEmployeeType();
 
-	console.log("getEmployee.employeeType :" + employeeType);
+	const employeeType = await getEmployeeType();
 
 	let employeeCreated = await getEmployeeMember(employeeType);
 
 	return employeeCreated;
 }
 
-	let listItemNo = 0;// for avoiding "do you want to continue?" for first time
+
 
 async function getEmployeeList(){
     if(listItemNo ===0){
-    	console.log("First time running employee type : "+ listItemNo);
         let employeeObj = await getEmployee();
         listItemNo++;
-		console.log("First time running listItemNo ++ : "+ listItemNo);
-		console.log("employeeObj : "+JSON.stringify(employeeObj));
         employeeList.push(await employeeObj);
     }
-    else if (listItemNo > 0) {
-        const continueList = await continueEmployeeList();
-		console.log("continueList : "+ continueList);
-		console.log("Second round running employee type : "+ listItemNo);
-        if (continueList) {
+    let continueList = false;
+    if (listItemNo > 0) {
+        continueList = await continueEmployeeList();
+        while (continueList) {
             let employeeObj = await getEmployee();
-			console.log("Second round running employee type : "+ listItemNo);
-			console.log("employeeObj second round : "+JSON.stringify(employeeObj));
             employeeList.push(employeeObj);
-        }
-        else if (!continueList){
-            return employeeList;
+			continueList = await continueEmployeeList();
+			console.log("continueList : "+ continueList)
         }
     }
+	return employeeList;
 }
 
 const main = async () => {
-	console.log("main function started" );
+
 	let employeeObjList = await getEmployeeList();
-	console.log("main employeeObjList : "+ employeeObjList)
+	console.log("main employeeObjList : "+ JSON.stringify(employeeObjList));
 
 };
 
