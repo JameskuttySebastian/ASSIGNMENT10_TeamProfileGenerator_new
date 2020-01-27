@@ -6,8 +6,11 @@ const { Manager, getManager } = require("./lib/Manager");
 const { Engineer, getEngineer } = require("./lib/Engineer");
 const { Intern, getIntern } = require("./lib/Intern");
 
+
 // for user input collection
 const inquirer = require('inquirer');
+//for replacing the object values
+const Handlebars = require("handlebars");
 // for user input validation
 const validate = require("./lib/validate");
 
@@ -16,6 +19,7 @@ const fs = require("fs"); // for writing into a file
 const util = require("util"); // for promisify
 
 const writeFileAsync = util.promisify(fs.writeFile);
+const readFileAsync = util.promisify(fs.readFile);
 
 //Global variables
 let employeeList = [];
@@ -39,21 +43,23 @@ async function getEmployeeType() {
 }
 
 async function getEmployeeMember(employeeType) {
+	try{
+		if (employeeType === "Manager") {
+			let manager = new Manager;
+			let managerObj = await getManager(manager);
+			return managerObj;
+		} else if (employeeType === "Engineer") {
+			let engineer = new Engineer;
 
-	if (employeeType === "Manager") {
-		let manager = new Manager;
+			return await getEngineer(engineer);
+		} else if ( employeeType === "Intern") {
+			let intern = new Intern;
 
-		let managerObj = await getManager(manager);
-
-		return managerObj;
-	} else if (employeeType === "Engineer") {
-		let engineer = new Engineer;
-
-		return await getEngineer(engineer);
-	} else if ( employeeType === "Intern") {
-		let intern = new Intern;
-
-		return await getIntern(intern);
+			return await getIntern(intern);
+		}
+	}
+	catch (e) {
+		console.log("Error: "+ e);
 	}
 }
 
@@ -100,11 +106,49 @@ async function getEmployeeList(){
 	return employeeList;
 }
 
+async function getHtmlBody(type){
+	let filePath = "";
+	if (type ==="Manager"){
+		filePath = "./templates/manager.html";
+	}
+	else if (type ==="Engineer"){
+		filePath = "./templates/engineer.html";
+	}
+	else if (type ==="Intern"){
+		filePath = "./templates/intern.html";
+	}
+	else if (type ==="Main"){
+		filePath = "./templates/main.html";
+	}
+
+	const fileContent = await readFileAsync(filePath);
+	return ("'"+ fileContent+"'");
+}
+
 const main = async () => {
 
 	let employeeObjList = await getEmployeeList();
-	console.log("main employeeObjList : "+ JSON.stringify(employeeObjList));
 
+	//for saving all the employee html data
+	let employeeHtmlArray = [];
+	//generate html for each employee and save into an array
+	for (const obj of employeeObjList) {
+		let objType = obj.constructor.name;
+		let empHtmlBody = await getHtmlBody(objType);
+		let template = Handlebars.compile(empHtmlBody);
+		employeeHtmlArray.push(template(obj));
+	}
+	//combine all the employee information html
+	let employeeHtmlJoined = (employeeHtmlArray.join("\n"));
+	// get main html body
+	let mainHtmlBody = await getHtmlBody("Main");
+
+	//replace the variable with the generated html
+	let pageHtml = await mainHtmlBody.replace("{{employeeHtml}}", employeeHtmlJoined);
+
+
+// writing to html file
+	await writeFileAsync("./output/team.html", pageHtml);
 };
 
 
