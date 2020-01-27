@@ -13,7 +13,7 @@ const validate = require("./lib/validate");
 
 
 const fs = require("fs"); // for writing into a file
-const util = require("util"); // for promisifying
+const util = require("util"); // for promisify
 
 const writeFileAsync = util.promisify(fs.writeFile);
 
@@ -21,11 +21,11 @@ let employeeList = [];
 
 
 async function getEmployeeType() {
-    await inquirer.prompt([
+    return await inquirer.prompt([
         {
             type: "list",
-            message: "Which Employee you eant to create?",
-            name: "contact",
+            message: "Which employee type you want to enter?",
+            name: "empType",
             choices: [
                 "Manager",
                 "Engineer",
@@ -33,29 +33,31 @@ async function getEmployeeType() {
             ]
         }
     ]).then(function (data) {
-        if (data) {
-            return data.contact;
-        }       
+        return data.empType;
     })
 }
 
 async function getEmployee(employeeType) {
-    if (employeeType == "Manager") {
-        let manager = new Manager;
-        return await getManager(manager);        
-    }
-    else if (employeeType == "Engineer") {
-        let engineer = new Engineer;
-        return await getEngineer(engineer);
-    }
-    else if (employeeType == "Manager") {
-        let intern = new Intern;
-        return await getIntern(intern);
+    return async function () {
+        if (employeeType === "Manager") {
+            let manager = new Manager;
+            console.log("manager created : " + JSON.stringify(manager));
+            let managerObj = await getManager(manager);
+            return managerObj;
+        } else if (employeeType === "Engineer") {
+            let engineer = new Engineer;
+            console.log("Engineer created : " + JSON.stringify(engineer));
+            return await getEngineer(engineer);
+        } else if (employeeType === "Manager") {
+            let intern = new Intern;
+            console.log("Engineer intern : " + JSON.stringify(intern));
+            return await getIntern(intern);
+        }
     }
 }
 
 async function continueEmployeeList() {
-    await inquirer.prompt(
+    return await inquirer.prompt(
         {
             type: 'confirm',
             name: 'again',
@@ -65,10 +67,9 @@ async function continueEmployeeList() {
         .then(function (ans) {
             return ans.again;
         })
-
 }
 
-const main = async () => {
+async function getEmployeeList(){
 
     const employeeType = await getEmployeeType();
 
@@ -78,13 +79,19 @@ const main = async () => {
 
     const continueList = await continueEmployeeList();
 
-    console.log(continueList)
+    return employeeList;
+}
+
+const main = async () => {
+    let employeeObjList = await getEmployeeList();
 
     if (continueList) {
-        employeeType();
+        console.log("if (continueList)" + continueList);
+        getEmployeeList();
+
     }
 
-    console.log(JSON.stringify(employeeList));
+    console.log("main employeeObjList : "+ employeeObjList)
 
 
 };
